@@ -61,8 +61,23 @@ function initBuffers(gl) {
         new Float32Array(vertices),
         gl.STATIC_DRAW);
 
+    const colorBuffer = gl.createBuffer();
+    const colors = [
+        1.0, 1.0, 1.0, 1.0,    // 白
+        1.0, 0.0, 0.0, 1.0,    // 红
+        0.0, 1.0, 0.0, 1.0,    // 绿
+        0.0, 0.0, 1.0, 1.0,    // 蓝
+    ];
+
+    gl.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(WebGLRenderingContext.ARRAY_BUFFER,
+        new Float32Array(colors),
+        WebGLRenderingContext.STATIC_DRAW
+    );
+
     return {
         position: positionBuffer,
+        color: colorBuffer,
     };
 }
 
@@ -127,6 +142,16 @@ function drawScene(gl, programInfo, buffers) {
             offset);
         gl.enableVertexAttribArray(
             programInfo.attribLocations.vertexPosition);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+        gl.vertexAttribPointer(
+            programInfo.attribLocations.colorPosition,
+            4,
+            gl.FLOAT,
+            false,
+            0,
+            0);
+        gl.enableVertexAttribArray(programInfo.attribLocations.colorPosition)
     }
 
     // Tell WebGL to use our program when drawing
@@ -169,20 +194,26 @@ function main() {
 
     const vsSrc = `
     attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
 
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
+    varying lowp vec4 vColor;
+
     void main()
     {
         gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        vColor = aVertexColor;
     }
     `;
 
     const fsSrc = `
+    varying lowp vec4 vColor;
+    
     void main()
     {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vColor;
     }
     `;
 
@@ -192,6 +223,7 @@ function main() {
         program: shaderProgram,
         attribLocations: {
             vertextPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+            colorPosition: gl.getAttribLocation(shaderProgram, "aVertexColor"),
         },
         uniformLocations: {
             projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
